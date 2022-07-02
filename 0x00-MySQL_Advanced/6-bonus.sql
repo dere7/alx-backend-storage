@@ -8,4 +8,4 @@ BEGIN
     END IF;
     INSERT INTO corrections (user_id, project_id, score) VALUES (user_id, (SELECT id FROM projects WHERE name LIKE project_name), score);
 END$$
-DELIMITER ;$$
+DELIMITER ;
