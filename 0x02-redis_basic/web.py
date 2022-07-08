@@ -12,7 +12,7 @@ def count_calls(fn: Callable) -> Callable:
     def wrapper(url, *args, **kwargs):
         r = redis.Redis()
         key = 'count:' + url
-        r.incrby(key, 1)
+        r.incr(key)
         return fn(url, *args, **kwargs)
     return wrapper
 
