@@ -4,7 +4,6 @@ from typing import Union, Callable, Any, Optional
 from uuid import uuid4
 import functools
 import redis
-import json
 
 
 def count_calls(method: Callable) -> Callable:
@@ -13,7 +12,7 @@ def count_calls(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        self._redis.incrby(key, 1)
+        self._redis.incr(key)
         return method(self, *args, **kwargs)
     return wrapper
 
@@ -24,7 +23,7 @@ def call_history(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        self._redis.rpush(key + ':inputs', *args)
+        self._redis.rpush(key + ':inputs', str(args))
         result = method(self, *args, **kwargs)
         self._redis.rpush(key + ':outputs', result)
         return result
@@ -36,16 +35,10 @@ def replay(method: Callable) -> Callable:
     key = method.__qualname__
     r = redis.Redis()
     print('{} was called {} times:'.format(key, r.get(key).decode('utf-8')))
-    inputs = []
-    for i in r.lrange(key + ':inputs', 0, -1):
-        value = i.decode('utf-8')
-        if value.isdigit():
-            value = json.loads(value)
-        inputs.append(value)
-
+    inputs = [i.decode('utf-8') for i in r.lrange(key + ':inputs', 0, -1)]
     outputs = [i.decode('utf-8') for i in r.lrange(key + ':outputs', 0, -1)]
     for inputs, outputs in zip(inputs, outputs):
-        print('{}(*({!r},)) -> {}'.format(key, inputs, outputs))
+        print('{}(*{}) -> {}'.format(key, inputs, outputs))
 
 
 class Cache:
